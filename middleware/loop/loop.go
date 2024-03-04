@@ -30,7 +30,7 @@ func (l *Loop) ServeDNS(ctx context.Context, ch *middleware.Chain) {
 		ch.Cancel()
 		return
 	}
-
+	// qKey: "bing.com.:A"
 	qKey := req.Question[0].Name + ":" + dns.TypeToString[req.Question[0].Qtype]
 
 	key := ctxKey("loopcheck:" + qKey)

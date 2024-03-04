@@ -7,3 +7,5 @@ coverage.out
 db
 access.log
 vendor
+__debug_bin
+config.conf
