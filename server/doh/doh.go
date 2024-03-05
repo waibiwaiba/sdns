@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 
@@ -59,6 +60,27 @@ func HandleWireFormat(handle func(*dns.Msg) *dns.Msg) func(http.ResponseWriter, 
 		if msg == nil {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
+		}
+
+		// Add additional DNS records if there's only one question in the request
+		if len(msg.Question) == 1 {
+			// Create additional DNS records for other domains
+			additionalRecords := []*dns.A{
+				{
+					Hdr: dns.RR_Header{
+						Name:   "baidu.com.",
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    3600,
+					},
+					A: net.ParseIP("1.1.1.1"), // Adjust IP address as needed
+				},
+			}
+
+			// Append additional records to the response
+			for _, record := range additionalRecords {
+				msg.Answer = append(msg.Answer, record)
+			}
 		}
 
 		packed, err := msg.Pack()
