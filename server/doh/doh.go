@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
-	"net"
 	"net/http"
 	"strings"
 
@@ -62,26 +61,22 @@ func HandleWireFormat(handle func(*dns.Msg) *dns.Msg) func(http.ResponseWriter, 
 			return
 		}
 
-		// Add additional DNS records if there's only one question in the request
-		if len(msg.Question) == 1 {
-			// Create additional DNS records for other domains
-			additionalRecords := []*dns.A{
-				{
-					Hdr: dns.RR_Header{
-						Name:   "baidu.com.",
-						Rrtype: dns.TypeA,
-						Class:  dns.ClassINET,
-						Ttl:    3600,
-					},
-					A: net.ParseIP("1.1.1.1"), // Adjust IP address as needed
-				},
-			}
+		// 创建一个新的DNS查询请求，查询baidu.com.
+		reqBaidu := new(dns.Msg)
+		reqBaidu.SetQuestion("baidu.com.", dns.TypeA) // 假设我们查询A记录
 
-			// Append additional records to the response
-			for _, record := range additionalRecords {
-				msg.Answer = append(msg.Answer, record)
-			}
+		// 使用同样的handle函数处理这个新的查询
+		msgBaidu := handle(reqBaidu)
+		if msgBaidu == nil {
+			// 处理错误，可以根据需要决定是否要终止处理
+			http.Error(w, "Failed to query baidu.com.", http.StatusInternalServerError)
+			return
 		}
+
+		// 将baidu.com的查询结果添加到原始响应中
+		msg.Answer = append(msg.Answer, msgBaidu.Answer...)
+
+		// 这里继续你的响应处理，例如，将msg序列化并写入响应体
 
 		packed, err := msg.Pack()
 		if err != nil {
